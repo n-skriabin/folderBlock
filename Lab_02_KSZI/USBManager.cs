@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Windows;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,9 +12,9 @@ namespace Lab_02_KSZI
 {
     public static class USBManager
     {
-        public static List<string> GetListUsbDevicesId()
+        public static List<USBDeviceInfo> GetListUsbDevicesId()
         {
-            var usbDevices = GetUSBDevices().Select(x=>x.DeviceID).ToList();
+            var usbDevices = GetUSBDevices()./*Select(x=>x.DeviceID).*/ToList();
 
             return usbDevices;
             //foreach (var usbDevice in usbDevices)
@@ -27,22 +28,24 @@ namespace Lab_02_KSZI
 
         public static List<USBDeviceInfo> GetUSBDevices()
         {
-            List<USBDeviceInfo> devices = new List<USBDeviceInfo>();
 
-            ManagementObjectCollection collection;
-            using (var searcher = new ManagementObjectSearcher(@"Select * From Win32_USBHub"))
-                collection = searcher.Get();
+            IEnumerable<string> usbDrivesLetters = from drive in new ManagementObjectSearcher("select * from Win32_DiskDrive WHERE InterfaceType='USB'").Get().Cast<ManagementObject>()
+                                                   from o in drive.GetRelated("Win32_DiskPartition").Cast<ManagementObject>()
+                                                   from i in o.GetRelated("Win32_LogicalDisk").Cast<ManagementObject>()
+                                                   select string.Format("{0}\\", i["Name"]);
 
-            foreach (var device in collection)
+            var test = from drive in DriveInfo.GetDrives()
+                   where drive.DriveType == DriveType.Removable && usbDrivesLetters.Contains(drive.RootDirectory.Name)
+                   select drive;
+
+            var devices = new List<USBDeviceInfo>();
+
+            foreach (var item in test)
             {
-                devices.Add(new USBDeviceInfo(
-                (string)device.GetPropertyValue("DeviceID"),
-                (string)device.GetPropertyValue("PNPDeviceID"),
-                (string)device.GetPropertyValue("Description")
-                ));
+                var device = new USBDeviceInfo(item.TotalSize+item.VolumeLabel+item.DriveFormat, item.Name);
+                devices.Add(device);
             }
 
-            collection.Dispose();
             return devices;
         }
 
@@ -71,14 +74,12 @@ namespace Lab_02_KSZI
 
     public class USBDeviceInfo
     {
-        public USBDeviceInfo(string deviceID, string pnpDeviceID, string description)
+        public USBDeviceInfo(string deviceID, string description)
         {
             this.DeviceID = deviceID;
-            this.PnpDeviceID = pnpDeviceID;
             this.Description = description;
         }
         public string DeviceID { get; private set; }
-        public string PnpDeviceID { get; private set; }
         public string Description { get; private set; }
     }
 }

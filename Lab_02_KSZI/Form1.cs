@@ -19,6 +19,12 @@ namespace Lab_02_KSZI
 
             var usbDeviceList = USBManager.GetListUsbDevicesId();
 
+            comboBox1.DisplayMember = "Description";
+            comboBox1.ValueMember = "DeviceID";
+
+            comboBox2.DisplayMember = "Description";
+            comboBox2.ValueMember = "DeviceID";
+
             foreach (var item in usbDeviceList)
             {
                 comboBox1.Items.Add(item);
@@ -64,8 +70,10 @@ namespace Lab_02_KSZI
         {
             if (textBox1.Text != String.Empty && comboBox1.GetItemText(comboBox1.SelectedItem) != String.Empty)
             {
+                USBDeviceInfo selectedUsbDevice = (USBDeviceInfo)comboBox1.SelectedItem;
+
                 USBManager.Lock(textBox1.Text);
-                File.AppendAllText("config.txt", $"{textBox1.Text}-{comboBox1.GetItemText(comboBox1.SelectedItem)}-");
+                File.AppendAllText("config.txt", $"{textBox1.Text}-{selectedUsbDevice.DeviceID}-");
 
                 MessageBox.Show(
                         "Папка успешно заблокирована",
@@ -87,9 +95,11 @@ namespace Lab_02_KSZI
         {
             if (textBox2.Text != String.Empty && comboBox2.GetItemText(comboBox2.SelectedItem) != String.Empty)
             {
+                USBDeviceInfo selectedUsbDevice = (USBDeviceInfo)comboBox2.SelectedItem;
+
                 var listConfig = File.ReadAllText(@"config.txt").Replace("\n", " ");
 
-                if (listConfig.Contains(textBox2.Text+"-"+comboBox2.GetItemText(comboBox2.SelectedItem)))
+                if (listConfig.Contains(textBox2.Text+"-"+ selectedUsbDevice.DeviceID))
                 {
                     USBManager.Unlock(textBox2.Text);
 
